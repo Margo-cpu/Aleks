@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Учёт дохода курьера</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Manrope:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+/* Plan: a light, soft-glass phone screen. Cards are frosted, tiles are tinted, coral is the action colour. */
+:root{
+  --text:#1f2b3a; --muted:#6c7a8d; --line:#d5dee9;
+  --accent:#ff7a59; --mint:#1f9d8f; --gold:#c98a12;
+  --display:"Unbounded",system-ui,sans-serif; --body:"Manrope",system-ui,sans-serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;color:var(--text);font-family:var(--body);
+  background:
+    radial-gradient(circle at 8% 6%, #cfe6f2 0, transparent 42%),
+    radial-gradient(circle at 96% 34%, #e4dcf7 0, transparent 40%),
+    linear-gradient(180deg,#dfe9f2,#edf2f7);
+  background-attachment:fixed}
+body{max-width:520px;margin:0 auto;padding:16px 14px 56px}
+button,input{font:inherit;color:inherit}
+h2{font-size:12px;letter-spacing:.06em;color:var(--muted);font-weight:700;text-transform:uppercase;margin:0 0 12px}
+.card{background:rgba(255,255,255,.58);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.75);border-radius:22px;padding:16px;margin-bottom:14px;box-shadow:0 8px 24px rgba(70,95,125,.12)}
+input[type=number],input[type=date],input[type=text]{background:#ffffff;border:1px solid #c7d2df;color:var(--text);border-radius:12px;padding:10px 12px;outline:none;width:100%;min-width:0}
+input:focus{border-color:var(--accent)}
+input::placeholder{color:#8a95a7;opacity:1}
+.muted{color:var(--muted);font-size:13px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.grid2 small{display:block;color:var(--muted);font-size:12px;margin-bottom:4px}
+.btn{width:100%;padding:14px;border:0;border-radius:14px;background:var(--accent);color:#1d0e08;font-weight:700;font-size:16px;cursor:pointer}
+.btn:active{transform:scale(.98)}
+.btn.ghost{background:rgba(255,255,255,.7);border:1px solid #cfd9e5;color:var(--muted);font-weight:600;font-size:14px;padding:10px 14px;width:auto}
+.btn.ghost.armed{border-color:var(--accent);color:var(--accent)}
+.addRow{width:100%;margin-top:4px}
+
+/* expenses in setup and in the expenses block */
+.exp{display:grid;grid-template-columns:1.4fr 0.9fr 1.2fr auto;gap:6px;align-items:center;margin-bottom:8px}
+.exp input{padding:9px 10px}
+.exp .x{background:#fff;border:1px solid #cfd9e5;color:var(--muted);border-radius:10px;padding:8px 10px;cursor:pointer}
+
+/* hero */
+.hero{display:flex;align-items:center;gap:16px}
+.hero .info{flex:1;min-width:0}
+.rangeBtn{background:none;border:0;padding:0;text-align:left;cursor:pointer;color:var(--muted);font-size:13px}
+.rangeHint{color:var(--accent);margin-left:6px;font-size:12px}
+.earned{font-family:var(--display);font-size:24px;font-variant-numeric:tabular-nums;margin-top:6px;white-space:nowrap}
+.ring{width:100px;height:100px;flex:none}
+.ring circle{fill:none;stroke-width:10}
+.ring .track{stroke:#dbe3ec}
+.ring .fill{stroke:var(--mint);stroke-linecap:round;transition:stroke-dashoffset .9s cubic-bezier(.2,.8,.2,1)}
+.ring text{fill:var(--text);font-family:var(--display);font-size:15px;text-anchor:middle}
+.heroFoot{display:flex;justify-content:space-between;align-items:center;margin-top:14px;gap:8px}
+.dateEdit{margin-top:14px}
+
+/* tiles */
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.tile{border-radius:22px;padding:14px;min-height:124px;display:flex;flex-direction:column;box-shadow:0 6px 16px rgba(70,95,125,.08)}
+.tile .ico{width:36px;height:36px;border-radius:12px;background:rgba(255,255,255,.7);display:grid;place-items:center;margin-bottom:10px}
+.tile .ico svg{width:20px;height:20px;stroke:#1f2b3a;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.tile .lbl{font-size:12px;color:#4f5f72}
+.tile b{font-family:var(--display);font-size:17px;font-variant-numeric:tabular-nums;margin-top:4px;color:#1f2b3a}
+.tile small{font-size:12px;color:#5b6a7d;margin-top:auto;padding-top:6px}
+.t1{background:#d9f0ec}.t2{background:#d8e8f7}.t3{background:#e3dcf5}.t4{background:#fde4d7}
+
+/* today */
+.todayGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.todayGrid small{display:block;color:var(--muted);font-size:12px;margin-bottom:4px}
+
+/* plan rows */
+.prow{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px}
+.prow:last-child{border-bottom:0}
+.prow b{font-family:var(--display);font-size:13px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.prow b.hot{color:var(--mint)}
+
+/* recent */
+.rrow{display:grid;grid-template-columns:1.3fr 0.9fr 1fr;gap:8px;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px;align-items:center}
+.rrow:last-child{border-bottom:0}
+.rrow b{text-align:right;font-family:var(--display);font-size:13px;font-variant-numeric:tabular-nums}
+
+/* donut */
+.donutWrap{position:relative;width:160px;height:160px;margin:6px auto 4px}
+.donutWrap svg{width:100%;height:100%}
+.donutC{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.donutC b{font-family:var(--display);font-size:15px;font-variant-numeric:tabular-nums}
+.donutC small{color:var(--muted);font-size:12px}
+.lg{display:flex;align-items:center;gap:8px;font-size:14px;padding:5px 0}
+.lg i{width:10px;height:10px;border-radius:50%;flex:none}
+.lg span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lg b{font-variant-numeric:tabular-nums}
+
+/* day windows */
+.row{display:grid;grid-template-columns:1.1fr 1fr 1fr;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+.row:last-child{border-bottom:0}
+.row .dt b{font-size:14px;font-weight:700}
+.row .dt small{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+.row.today{background:linear-gradient(90deg,rgba(31,157,143,.12),transparent);border-radius:12px;padding-left:8px}
+.row.future{opacity:.55}
+.row input{padding:9px 10px}
+.dexpEdit{grid-column:1/-1;color:var(--gold);font-size:12px;margin-top:-2px}
+.dexpEdit:empty{display:none}
+
+/* details blocks */
+details.card summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;font-size:12px;letter-spacing:.06em;color:var(--muted);font-weight:700;text-transform:uppercase}
+details.card summary::-webkit-details-marker{display:none}
+details.card summary::after{content:"▾";font-size:14px;transition:transform .2s}
+details.card[open] summary{margin-bottom:12px}
+details.card[open] summary::after{transform:rotate(180deg)}
+
+/* payments outside the period */
+.outBox:empty{display:none}
+.outBox{background:#fff6e3;border:1px solid #efd9a6;border-radius:18px;padding:12px 14px;margin-bottom:14px}
+.outHead{font-size:12px;color:var(--gold);font-weight:700;letter-spacing:.05em;text-transform:uppercase;margin-bottom:6px}
+.outItem{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:6px 0;font-size:14px;border-top:1px solid #efd9a6}
+.outItem small{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+.outItem b{font-family:var(--display);font-size:13px;font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--gold)}
+
+/* chart */
+#chart{width:100%;height:auto;display:block;overflow:visible}
+.bar{fill:#7cc4cf;opacity:.95;transition:height .7s cubic-bezier(.2,.8,.2,1),y .7s cubic-bezier(.2,.8,.2,1)}
+.bar.today{fill:var(--accent);opacity:1}
+.tline{stroke:var(--gold);stroke-width:2;stroke-dasharray:6 6;opacity:.8}
+.day{fill:var(--muted);font-size:11px;text-anchor:middle}
+.day.small{font-size:9px}
+
+/* feedback */
+.toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,160%);background:#1f9d8f;color:#fff;padding:12px 18px;border-radius:14px;font-weight:700;transition:transform .35s cubic-bezier(.2,.8,.2,1);z-index:6;max-width:90%;text-align:center}
+.toast.show{transform:translate(-50%,0)}
+.bit{position:fixed;top:45%;width:8px;height:12px;border-radius:2px;pointer-events:none;animation:fly 1.1s cubic-bezier(.2,.7,.3,1) forwards;z-index:5}
+@keyframes fly{from{transform:translate(0,0) rotate(0)}to{transform:translate(var(--dx),var(--dy)) rotate(540deg);opacity:0}}
+@media (prefers-reduced-motion:reduce){.bar,.ring .fill{transition:none}.bit{display:none}}
+</style>
+</head>
+<body>
+
+<!-- Setup: shown when there is no active period -->
+<section class="card" id="setup" style="display:none">
+  <h2>Новый период</h2>
+  <div class="grid2">
+    <div><small class="muted">Начало</small><input id="pStart" type="date"></div>
+    <div><small class="muted">Конец</small><input id="pEnd" type="date"></div>
+    <div><small class="muted">Сумма цели, ₽</small><input id="pTarget" type="number" inputmode="numeric" min="1" placeholder="сумма расходов"></div>
+    <div><small class="muted">Стоимость заказа, ₽</small><input id="pPrice" type="number" inputmode="numeric" min="1" placeholder="200"></div>
+    <div><small class="muted">Уже есть на карте, ₽</small><input id="pCash" type="number" inputmode="numeric" min="0" placeholder="0"></div>
+  </div>
+
+  <h2 style="margin-top:16px">На что нужны деньги</h2>
+  <div id="expList"></div>
+  <button class="btn ghost addRow" id="addExp" type="button">+ добавить расход</button>
+  <p class="muted" id="expSum" style="margin:12px 0 0"></p>
+  <button class="btn" id="pCreate" type="button" style="margin-top:12px">Создать период</button>
+</section>
+
+<!-- Main view: shown when a period is active -->
+<div id="main" style="display:none">
+
+  <section class="card">
+    <div class="hero">
+      <svg class="ring" viewBox="0 0 100 100" aria-hidden="true">
+        <circle class="track" cx="50" cy="50" r="40"></circle>
+        <circle id="fill" class="fill" cx="50" cy="50" r="40" transform="rotate(-90 50 50)"></circle>
+        <text id="pct" x="50" y="56">0%</text>
+      </svg>
+      <div class="info">
+        <button class="rangeBtn" id="rangeBtn" type="button"><span id="range"></span><span class="rangeHint">изменить даты</span></button>
+        <div class="earned" id="earned">0 ₽</div>
+        <div class="muted" id="target"></div>
+      </div>
+    </div>
+    <div class="dateEdit" id="dateEdit" style="display:none">
+      <div class="grid2">
+        <div><small class="muted">Начало</small><input id="dStart" type="date"></div>
+        <div><small class="muted">Конец</small><input id="dEnd" type="date"></div>
+      </div>
+      <button class="btn" id="dSave" type="button">Сохранить даты</button>
+    </div>
+    <div class="heroFoot">
+      <span class="muted">Цель периода</span>
+      <button class="btn ghost" id="reset" type="button">Новый период</button>
+    </div>
+  </section>
+
+  <section class="tiles">
+    <div class="tile t1">
+      <span class="ico"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="3"/><path d="M3 10h18"/><circle cx="16" cy="14.5" r="1.2"/></svg></span>
+      <span class="lbl">Заработано</span><b id="tEarned">0 ₽</b><small id="tEarnedSub"></small>
+    </div>
+    <div class="tile t2">
+      <span class="ico"><svg viewBox="0 0 24 24"><path d="M5 8h14l-1 12H6z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg></span>
+      <span class="lbl">Заказов сделано</span><b id="tOrders">0</b><small id="tOrdersSub"></small>
+    </div>
+    <div class="tile t3">
+      <span class="ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg></span>
+      <span class="lbl">Нужно в день</span><b id="tNeedNow">—</b><small id="tNeedSub"></small>
+    </div>
+    <div class="tile t4">
+      <span class="ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg></span>
+      <span class="lbl">Осталось заработать</span><b id="tRemain">0 ₽</b><small id="tRemainSub"></small>
+    </div>
+  </section>
+
+  <section class="card" id="todayCard">
+    <h2>Сегодня</h2>
+    <div class="muted" id="todayDate"></div>
+    <div class="muted" id="todayPlan" style="margin-top:2px"></div>
+    <div class="todayGrid">
+      <div><small>Заказов</small><input id="todayOrders" type="number" inputmode="numeric" min="0" placeholder="0" data-k="orders"></div>
+      <div><small>Сумма, ₽</small><input id="todayEarn" type="number" inputmode="numeric" min="0" placeholder="0" data-k="earned"></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Заработано по дням</h2>
+    <svg id="chart" viewBox="0 0 560 190" role="img" aria-label="Заработок по дням периода и дневная цель"></svg>
+  </section>
+
+  <section class="card">
+    <h2>Куда уходят деньги</h2>
+    <div class="donutWrap">
+      <svg viewBox="0 0 100 100" aria-hidden="true">
+        <circle cx="50" cy="50" r="40" fill="none" stroke="#dbe3ec" stroke-width="14"></circle>
+      </svg>
+      <div class="donutC"><b id="donutTotal">0 ₽</b><small>расходы</small></div>
+    </div>
+    <div id="legend"></div>
+  </section>
+
+  <section class="card">
+    <h2>План на период</h2>
+    <div class="prow"><span>Стоимость заказа</span><b id="pPriceV">—</b></div>
+    <div class="prow"><span>Нужно заказов</span><b id="pOrdNeed">—</b></div>
+    <div class="prow"><span>В день по плану</span><b id="pPerDay" class="hot">—</b></div>
+    <div class="prow"><span>Есть на карте</span><b id="pCashV">—</b></div>
+    <div class="prow"><span>Расходы периода</span><b id="pExp">—</b></div>
+    <div class="prow"><span>Останется после расходов</span><b id="pAfter" class="hot">—</b></div>
+  </section>
+
+  <section class="card">
+    <h2>Последние записи</h2>
+    <div id="recent"></div>
+  </section>
+
+  <details class="card" id="expBox">
+    <summary><span id="expTitle">Расходы периода</span></summary>
+    <p class="muted" style="margin:0 0 10px">Поменяй сумму или дату, и цель пересчитается. Заказы по дням останутся.</p>
+    <div id="expEdit"></div>
+    <button class="btn ghost addRow" id="addExpMain" type="button">+ добавить расход</button>
+  </details>
+
+  <div id="outNote" class="outBox"></div>
+
+  <details class="card" id="daysBox">
+    <summary><span id="daysTitle">Дни периода</span></summary>
+    <p class="muted" style="margin:0 0 10px">Введи заказы за день. Сумма считается сама (заказы × стоимость), её можно поправить. Расходы показаны в день платежа.</p>
+    <div id="days"></div>
+  </details>
+</div>
+
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+const KEY = 'period-v2';
+const DOC = 'state2';
+const NS = 'http://www.w3.org/2000/svg';
+const PAL = ['#1f9d8f','#7cc4cf','#a58fe0','#ff9f7a','#e6b93c','#8fa3b8','#e77ea0'];
+const $ = id => document.getElementById(id);
+const pad = n => String(n).padStart(2,'0');
+const ymd = d => d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const today = () => ymd(new Date());
+const addDays = (s,k) => { const [y,m,d] = s.split('-').map(Number); return ymd(new Date(y,m-1,d+k)); };
+const rub = n => Math.round(n).toLocaleString('ru-RU') + ' ₽';
+const fmtDate = s => { const [y,m,d] = s.split('-').map(Number); return d+'.'+pad(m); };
+const WD = ['вс','пн','вт','ср','чт','пт','сб'];
+const wd = s => { const [y,m,d] = s.split('-').map(Number); return WD[new Date(y,m-1,d).getDay()]; };
+const svgEl = (tag, attrs) => { const el = document.createElementNS(NS, tag); for(const k in attrs) el.setAttribute(k, attrs[k]); return el; };
+
+let state = {period: null};
+let docRef = null;
+let armedReset = false;
+let rowsSig = '';
+let expSig = '';
+let dayExpSig = '';
+let dirty = false;
+const bars = [], labs = [];
+let tline = null;
+
+function load(){
+  try{
+    const raw = localStorage.getItem(KEY);
+    if(raw){ const s = JSON.parse(raw); if(s && typeof s === 'object') state = s; }
+  }catch(e){}
+}
+function persist(){
+  dirty = true;
+  try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){}
+  if(docRef){ try{ Promise.resolve(docRef.set(state)).catch(()=>{}); }catch(e){} }
+}
+
+function periodDays(p){
+  const out = [];
+  let d = p.start, guard = 0;
+  while(d <= p.end && guard < 62){ out.push(d); d = addDays(d,1); guard++; }
+  return out;
+}
+
+function calc(p){
+  const days = periodDays(p), N = days.length || 1;
+  let earned = 0, orders = 0;
+  days.forEach(d => { const e = p.days[d]; if(e){ earned += e.earned || 0; orders += e.orders || 0; } });
+  const expTotal = (p.expenses || []).reduce((a,x) => a + x.amount, 0);
+  const cash = p.cash || 0;
+  const needTotal = Math.max(0, p.target - cash);
+  const ordersNeeded = Math.ceil(needTotal / p.price);
+  const perDayOrders = ordersNeeded / N;
+  const remainEarn = Math.max(0, needTotal - earned);
+  const remainOrders = Math.ceil(remainEarn / p.price);
+  const t = today();
+  // Days still ahead: every future day, plus today while nothing is entered for it yet.
+  const left = days.filter(d => d > t || (d === t && !p.days[t]));
+  const remainDays = left.length;
+  const needNow = remainDays ? Math.ceil(remainOrders / remainDays) : null;
+  return {days, N, earned, orders, expTotal, cash, needTotal, afterExp: cash + earned - expTotal,
+          ordersNeeded, perDayOrders, remainEarn, remainOrders, remainDays, needNow,
+          pct: needTotal ? Math.min(1, earned / needTotal) : 1};
+}
+
+/* ---------- day rows ---------- */
+
+function ensureRows(p, c){
+  const sig = p.start + '|' + p.end;
+  if(sig !== rowsSig){
+    rowsSig = sig;
+    $('days').innerHTML = c.days.map(d =>
+      '<div class="row" data-row="'+d+'">'+
+        '<div class="dt"><b>'+fmtDate(d)+' · '+wd(d)+'</b><small class="plan"></small></div>'+
+        '<input type="number" inputmode="numeric" min="0" placeholder="заказов" data-d="'+d+'" data-k="orders" aria-label="Заказов за '+fmtDate(d)+'">'+
+        '<input type="number" inputmode="numeric" min="0" placeholder="₽" data-d="'+d+'" data-k="earned" aria-label="Сумма за '+fmtDate(d)+'">'+
+        '<div class="dexpEdit"></div>'+
+      '</div>').join('');
+  }
+  const t = today();
+  c.days.forEach(d => {
+    const row = $('days').querySelector('[data-row="'+d+'"]');
+    row.classList.toggle('today', d === t);
+    row.classList.toggle('future', d > t);
+    row.querySelector('.plan').textContent = 'план ≈ ' + Math.ceil(c.perDayOrders) + ' зак.';
+    const e = p.days[d] || {};
+    row.querySelectorAll('input').forEach(inp => {
+      if(inp !== document.activeElement){
+        const val = inp.dataset.k === 'orders' ? e.orders : e.earned;
+        inp.value = val ? val : '';
+      }
+    });
+  });
+}
+
+function fillDayExp(p){
+  const sig = JSON.stringify(p.expenses || []) + p.start + p.end;
+  if(sig === dayExpSig) return;
+  dayExpSig = sig;
+  const byDay = {};
+  (p.expenses || []).forEach(x => { if(x.date){ (byDay[x.date] = byDay[x.date] || []).push(x); } });
+  document.querySelectorAll('#days .row').forEach(row => {
+    const list = byDay[row.dataset.row] || [];
+    row.querySelector('.dexpEdit').textContent = list.length ? 'Расходы: ' + list.map(x => x.name + ' ' + rub(x.amount)).join(' · ') : '';
+  });
+}
+
+/* ---------- charts and blocks ---------- */
+
+function renderChart(p, c){
+  const svg = $('chart');
+  const N = c.N, step = 548 / N, bw = Math.max(3, step * 0.66);
+  const daily = c.needTotal / N;
+  const vals = c.days.map(d => (p.days[d] && p.days[d].earned) || 0);
+  const max = Math.max(daily * 1.2, 1, ...vals);
+  if(!tline){ tline = svgEl('line', {class:'tline', x1:0, x2:560}); svg.append(tline); }
+  while(bars.length < N){
+    const r = svgEl('rect', {rx: 6}); svg.append(r); bars.push(r);
+    const t = svgEl('text', {}); svg.append(t); labs.push(t);
+  }
+  while(bars.length > N){ bars.pop().remove(); labs.pop().remove(); }
+  const t = today();
+  c.days.forEach((d, i) => {
+    const v = vals[i], h = v > 0 ? Math.max(6, v / max * 130) : 3;
+    const x = 6 + i * step + (step - bw) / 2;
+    const r = bars[i];
+    r.setAttribute('x', x.toFixed(1));
+    r.setAttribute('width', bw.toFixed(1));
+    r.style.height = h + 'px';
+    r.style.y = (160 - h) + 'px';
+    r.setAttribute('class', 'bar' + (d === t ? ' today' : ''));
+    labs[i].setAttribute('x', (x + bw/2).toFixed(1));
+    labs[i].setAttribute('y', 180);
+    labs[i].setAttribute('class', N > 20 ? 'day small' : 'day');
+    labs[i].textContent = N > 10 ? d.slice(8) : wd(d);
+  });
+  const ty = (160 - daily / max * 130).toFixed(1);
+  tline.setAttribute('y1', ty);
+  tline.setAttribute('y2', ty);
+}
+
+function renderDonut(p){
+  const groups = {};
+  (p.expenses || []).forEach(x => { groups[x.name] = (groups[x.name] || 0) + x.amount; });
+  const items = Object.entries(groups).sort((a,b) => b[1] - a[1]);
+  const total = items.reduce((a, [,v]) => a + v, 0);
+  const svg = document.querySelector('.donutWrap svg');
+  svg.querySelectorAll('.seg').forEach(n => n.remove());
+  const C = 2 * Math.PI * 40;
+  let off = 0;
+  items.forEach(([name, v], i) => {
+    const len = total ? v / total * C : 0;
+    svg.append(svgEl('circle', {class:'seg', cx:50, cy:50, r:40, fill:'none', stroke:PAL[i % PAL.length], 'stroke-width':14,
+      'stroke-dasharray': len + ' ' + (C - len), 'stroke-dashoffset': -off, transform:'rotate(-90 50 50)'}));
+    off += len;
+  });
+  $('donutTotal').textContent = rub(total);
+  const legend = $('legend');
+  legend.innerHTML = items.length ? items.map(([name, v], i) =>
+    '<div class="lg"><i style="background:'+PAL[i % PAL.length]+'"></i><span>'+name+'</span><b>'+rub(v)+'</b></div>').join('')
+    : '<div class="muted">Расходов пока нет. Добавь их в блоке «Расходы периода».</div>';
+}
+
+function renderRecent(p){
+  const list = Object.keys(p.days)
+    .filter(d => (p.days[d].orders || 0) > 0 || (p.days[d].earned || 0) > 0)
+    .sort().reverse().slice(0, 5);
+  $('recent').innerHTML = list.length ? list.map(d =>
+    '<div class="rrow"><span>'+fmtDate(d)+' · '+wd(d)+'</span><span class="muted">'+(p.days[d].orders || 0)+' зак.</span><b>'+rub(p.days[d].earned || 0)+'</b></div>').join('')
+    : '<div class="muted">Пока нет записей. Введи заказы за день.</div>';
+}
+
+function renderToday(p, c){
+  const t = today();
+  const e = p.days[t] || {};
+  const inRange = t >= p.start && t <= p.end;
+  $('todayCard').style.display = inRange ? '' : 'none';
+  $('todayDate').textContent = fmtDate(t) + ' · ' + wd(t);
+  $('todayPlan').textContent = 'План ≈ ' + Math.ceil(c.perDayOrders) + ' заказов';
+  [['todayOrders','orders'], ['todayEarn','earned']].forEach(([id, k]) => {
+    const el = $(id);
+    el.dataset.d = t;
+    if(el !== document.activeElement) el.value = e[k] || '';
+  });
+}
+
+/* ---------- render ---------- */
+
+function render(){
+  const hasP = !!state.period;
+  $('setup').style.display = hasP ? 'none' : 'block';
+  $('main').style.display = hasP ? 'block' : 'none';
+  if(!hasP){ initSetup(); return; }
+  const p = state.period, c = calc(p);
+
+  $('range').textContent = fmtDate(p.start) + ' – ' + fmtDate(p.end) + ' · ' + c.N + ' дн.';
+  $('earned').textContent = rub(c.earned);
+  $('target').textContent = 'нужно заработать ' + rub(c.needTotal);
+  const C = 2 * Math.PI * 40;
+  const fill = $('fill');
+  fill.style.strokeDasharray = C;
+  fill.style.strokeDashoffset = C * (1 - c.pct);
+  $('pct').textContent = Math.round(c.pct * 100) + '%';
+
+  $('tEarned').textContent = rub(c.earned);
+  $('tEarnedSub').textContent = 'из ' + rub(c.needTotal);
+  $('tOrders').textContent = c.orders;
+  $('tOrdersSub').textContent = 'из ' + c.ordersNeeded + ' нужных';
+  $('tNeedNow').textContent = c.remainEarn <= 0 ? 'Готово' : (c.remainDays ? Math.ceil(c.needNow) + ' зак.' : '—');
+  $('tNeedSub').textContent = c.remainEarn <= 0 ? 'цель выполнена' : (c.remainDays ? 'до конца периода' : 'период закончился');
+  $('tRemain').textContent = rub(c.remainEarn);
+  $('tRemainSub').textContent = 'до цели периода';
+
+  $('pPriceV').textContent = rub(p.price);
+  $('pOrdNeed').textContent = c.ordersNeeded + ' зак.';
+  $('pPerDay').textContent = '≈ ' + Math.ceil(c.perDayOrders) + ' зак.';
+  $('pCashV').textContent = rub(c.cash);
+  $('pExp').textContent = rub(c.expTotal);
+  $('pAfter').textContent = rub(c.afterExp);
+
+  $('expTitle').textContent = 'Расходы периода · ' + rub(c.expTotal);
+  $('daysTitle').textContent = 'Дни периода · ' + c.N + ' дн.';
+
+  renderToday(p, c);
+  renderChart(p, c);
+  renderDonut(p);
+  renderRecent(p);
+  ensureRows(p, c);
+  fillDayExp(p);
+  renderExpEdit(p);
+
+  const outside = (p.expenses || []).filter(x => x.date && (x.date < p.start || x.date > p.end));
+  const box = $('outNote');
+  box.innerHTML = '';
+  if(outside.length){
+    const head = document.createElement('div');
+    head.className = 'outHead';
+    head.textContent = 'Платежи вне периода · учтены в расходах';
+    box.append(head);
+    outside.forEach(x => {
+      const row = document.createElement('div');
+      row.className = 'outItem';
+      const left = document.createElement('span');
+      left.textContent = x.name;
+      const date = document.createElement('small');
+      date.textContent = fmtDate(x.date);
+      left.append(date);
+      const amt = document.createElement('b');
+      amt.textContent = rub(x.amount);
+      row.append(left, amt);
+      box.append(row);
+    });
+  }
+}
+
+/* ---------- setup ---------- */
+
+function expRow(name, amount, date){
+  const r = document.createElement('div');
+  r.className = 'exp';
+  const n = document.createElement('input'); n.type = 'text'; n.className = 'en'; n.placeholder = 'на что'; n.value = name || '';
+  const a = document.createElement('input'); a.type = 'number'; a.inputMode = 'numeric'; a.min = '0'; a.className = 'ea'; a.placeholder = '₽'; a.value = amount || '';
+  const d = document.createElement('input'); d.type = 'date'; d.className = 'ed'; d.value = date || '';
+  const x = document.createElement('button'); x.type = 'button'; x.className = 'x'; x.textContent = '×'; x.setAttribute('aria-label', 'Удалить расход');
+  r.append(n, a, d, x);
+  return r;
+}
+
+function collectExp(){
+  return [...$('expList').querySelectorAll('.exp')].map(r => ({
+    name: r.querySelector('.en').value.trim(),
+    amount: Math.round(Number(r.querySelector('.ea').value) || 0),
+    date: r.querySelector('.ed').value
+  })).filter(x => x.name && x.amount > 0);
+}
+
+function updateExpSum(){
+  const total = collectExp().reduce((a,x) => a + x.amount, 0);
+  $('pTarget').value = total || '';
+  $('expSum').textContent = 'Сумма цели равна расходам. Если изменишь расходы, она пересчитается.';
+}
+
+function initSetup(){
+  if(!$('pStart').value){
+    const t = today();
+    $('pStart').value = t;
+    $('pEnd').value = addDays(t, 8);
+  }
+  const list = $('expList');
+  if(list.children.length === 0){
+    // Starter rows from the user's usual costs. The rent date is set only if the 18th falls inside the period.
+    const s = $('pStart').value, e = $('pEnd').value;
+    const rentDate = s.slice(0,8) + '18';
+    const inRange = rentDate >= s && rentDate <= e;
+    list.append(expRow('Квартира (аренда)', 56000, inRange ? rentDate : ''));
+    list.append(expRow('Еда', '', ''));
+    list.append(expRow('Кредит', '', ''));
+  }
+  updateExpSum();
+}
+
+function createPeriod(){
+  const start = $('pStart').value, end = $('pEnd').value;
+  const expenses = collectExp().map((x, i) => ({id: 'e' + Date.now() + i, name: x.name, amount: x.amount, date: x.date}));
+  const expTotal = expenses.reduce((a,x) => a + x.amount, 0);
+  const target = Math.round(Number($('pTarget').value)) || expTotal;
+  const price = Math.round(Number($('pPrice').value));
+  const cash = Math.round(Number($('pCash').value) || 0);
+  if(!start || !end || end < start){ toast('Проверь даты: конец не раньше начала'); return; }
+  if(!(target > 0)){ toast('Добавь расходы или сумму цели'); $('pTarget').focus(); return; }
+  if(!(price > 0)){ toast('Введи стоимость заказа'); $('pPrice').focus(); return; }
+  state.period = {start, end, target, price, cash, expenses, days: {}};
+  rowsSig = '';
+  render();
+  persist();
+  toast('Период создан: ' + Math.ceil(Math.max(0, target - cash) / price) + ' заказов');
+}
+
+/* ---------- expenses block ---------- */
+
+function renderExpEdit(p){
+  const sig = JSON.stringify(p.expenses || []);
+  if(sig === expSig) return;
+  expSig = sig;
+  const box = $('expEdit');
+  box.innerHTML = '';
+  (p.expenses || []).forEach(x => {
+    const r = expRow(x.name, x.amount, x.date);
+    r.dataset.id = x.id;
+    box.append(r);
+  });
+}
+
+function onExpChange(){
+  const p = state.period;
+  if(!p) return;
+  p.expenses = [...$('expEdit').querySelectorAll('.exp')].map((r, i) => ({
+    id: r.dataset.id || ('e' + Date.now() + i),
+    name: r.querySelector('.en').value.trim(),
+    amount: Math.round(Number(r.querySelector('.ea').value) || 0),
+    date: r.querySelector('.ed').value
+  })).filter(x => x.name && x.amount > 0);
+  // The goal equals the expenses, the same rule as when the period was created.
+  p.target = p.expenses.reduce((a, x) => a + x.amount, 0) || p.target;
+  expSig = '';
+  dayExpSig = '';
+  render();
+  persist();
+  toast('Расходы обновлены');
+}
+
+/* ---------- feedback and actions ---------- */
+
+function toast(msg){
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toast.timer);
+  toast.timer = setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+function burst(){
+  const colors = ['#ff7a59','#1f9d8f','#e6b93c','#7aa2ff'];
+  for(let i = 0; i < 18; i++){
+    const b = document.createElement('i');
+    b.className = 'bit';
+    b.style.background = colors[i % colors.length];
+    b.style.left = '50%';
+    b.style.setProperty('--dx', (Math.random()*240-120) + 'px');
+    b.style.setProperty('--dy', (-Math.random()*220-40) + 'px');
+    document.body.appendChild(b);
+    setTimeout(() => b.remove(), 1200);
+  }
+}
+
+function resetPeriod(btn){
+  if(!armedReset){
+    armedReset = true;
+    btn.textContent = 'Точно, сбросить?';
+    btn.classList.add('armed');
+    setTimeout(() => { if(armedReset){ armedReset = false; btn.textContent = 'Новый период'; btn.classList.remove('armed'); } }, 3000);
+    return;
+  }
+  armedReset = false;
+  state.period = null;
+  render();
+  persist();
+  btn.textContent = 'Новый период';
+  btn.classList.remove('armed');
+}
+
+// One handler for every order/sum input: the day list, the "Сегодня" card.
+function onDayChange(inp){
+  const p = state.period;
+  if(!p || !inp.dataset.d) return;
+  const d = inp.dataset.d;
+  const before = calc(p);
+  const row = p.days[d] || (p.days[d] = {orders: 0, earned: 0});
+  if(inp.dataset.k === 'orders'){
+    row.orders = Math.max(0, Math.round(Number(inp.value) || 0));
+    row.earned = row.orders * p.price;
+  } else {
+    row.earned = Math.max(0, Math.round(Number(inp.value) || 0));
+  }
+  if(!row.orders && !row.earned) delete p.days[d];
+  const after = calc(p);
+  render();
+  persist();
+  if(before.earned < before.needTotal && after.earned >= after.needTotal){
+    burst();
+    toast('Цель периода выполнена!');
+  } else {
+    toast('Сохранено: ' + rub(after.earned) + ' за период');
+  }
+}
+
+function bind(){
+  $('pCreate').addEventListener('click', createPeriod);
+  $('reset').addEventListener('click', e => resetPeriod(e.currentTarget));
+  $('days').addEventListener('change', e => {
+    if(e.target && e.target.dataset && e.target.dataset.d) onDayChange(e.target);
+  });
+  $('todayCard').addEventListener('change', e => {
+    if(e.target && e.target.dataset && e.target.dataset.d) onDayChange(e.target);
+  });
+  $('addExp').addEventListener('click', () => { $('expList').append(expRow('', '', '')); updateExpSum(); });
+  $('expList').addEventListener('click', e => {
+    if(e.target.classList.contains('x')){ e.target.closest('.exp').remove(); updateExpSum(); }
+  });
+  $('expList').addEventListener('input', updateExpSum);
+  $('rangeBtn').addEventListener('click', () => {
+    const p = state.period;
+    if(!p) return;
+    $('dStart').value = p.start;
+    $('dEnd').value = p.end;
+    const ed = $('dateEdit');
+    ed.style.display = ed.style.display === 'none' ? 'block' : 'none';
+  });
+  $('dSave').addEventListener('click', () => {
+    const p = state.period;
+    const s = $('dStart').value, e = $('dEnd').value;
+    if(!p) return;
+    if(!s || !e || e < s){ toast('Проверь даты: конец не раньше начала'); return; }
+    p.start = s;
+    p.end = e;
+    rowsSig = '';
+    dayExpSig = '';
+    $('dateEdit').style.display = 'none';
+    render();
+    persist();
+    toast('Даты обновлены');
+  });
+  $('expEdit').addEventListener('change', onExpChange);
+  $('expEdit').addEventListener('click', e => {
+    if(e.target.classList.contains('x')){ e.target.closest('.exp').remove(); onExpChange(); }
+  });
+  $('addExpMain').addEventListener('click', () => { $('expEdit').append(expRow('', '', '')); });
+}
+
+async function connect(){
+  try{
+    if(!window.claude || !window.claude.use) return;
+    const db = await window.claude.use('db');
+    const user = await window.claude.use('user');
+    if(!db || !user) return;
+    const id = await user.id();
+    docRef = db.collection('data/users/' + id).doc(DOC);
+    const snap = await docRef.get();
+    const remote = snap && (typeof snap.data === 'function' ? snap.data() : snap);
+    if(!dirty && remote && typeof remote === 'object' && 'period' in remote){
+      state = remote;
+      try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){}
+      render();
+    } else {
+      await docRef.set(state);
+    }
+  }catch(e){
+    docRef = null;
+  }
+}
+
+// Enter on the phone keyboard confirms the value: the key label becomes "Готово" and the field saves on leaving it.
+document.addEventListener('focusin', e => { if(e.target.tagName === 'INPUT') e.target.enterKeyHint = 'done'; });
+document.addEventListener('keydown', e => {
+  if(e.key === 'Enter' && e.target.tagName === 'INPUT' && e.target.type !== 'date') e.target.blur();
+});
+window.addEventListener('error', e => { try{ toast('Ошибка: ' + e.message); }catch(_){} });
+
+load();
+bind();
+render();
+connect();
+</script>
+</body>
+</html>
